@@ -1,0 +1,261 @@
+LAMMPS (12 Mar 2014)
+USER-CUDA mode is enabled (../lammps.cpp:445)
+# Input file for nanocutting of Cubic SiC with a diamond tool
+# Chris Fung, April 2013
+
+# input variables
+# -potential (choose the version of Tersoff potential used, options=y94/EA)
+# -v (cutting velocity = v * 100 (m s^-1 in x-direction))
+# -grooveDepth (choose a value in the range from 0.0 to 9.0 angstroms)
+# -grooveTan (half angle of the groove in tangent = half width/depth)
+
+variable respath string eq_fix2_${v}x100_m_s-1_Groove${grooveDepth}T${grooveTan}_SiC_${potential}
+variable respath string eq_fix2_2.0x100_m_s-1_Groove${grooveDepth}T${grooveTan}_SiC_${potential}
+variable respath string eq_fix2_2.0x100_m_s-1_Groove6T${grooveTan}_SiC_${potential}
+variable respath string eq_fix2_2.0x100_m_s-1_Groove6T0.5_SiC_${potential}
+variable respath string eq_fix2_2.0x100_m_s-1_Groove6T0.5_SiC_EA
+print "${respath}"
+eq_fix2_2.0x100_m_s-1_Groove6T0.5_SiC_EA
+shell mkdir ${respath}
+shell mkdir eq_fix2_2.0x100_m_s-1_Groove6T0.5_SiC_EA
+shell mkdir ${respath}/log_files
+shell mkdir eq_fix2_2.0x100_m_s-1_Groove6T0.5_SiC_EA/log_files
+shell mkdir ${respath}/restart_files
+shell mkdir eq_fix2_2.0x100_m_s-1_Groove6T0.5_SiC_EA/restart_files
+shell mkdir ${respath}/ovito_analysis-results
+shell mkdir eq_fix2_2.0x100_m_s-1_Groove6T0.5_SiC_EA/ovito_analysis-results
+shell chmod 774 ${respath}
+shell chmod 774 eq_fix2_2.0x100_m_s-1_Groove6T0.5_SiC_EA
+shell chmod 774 ${respath}/log_files
+shell chmod 774 eq_fix2_2.0x100_m_s-1_Groove6T0.5_SiC_EA/log_files
+shell chmod 774 ${respath}/restart_files
+shell chmod 774 eq_fix2_2.0x100_m_s-1_Groove6T0.5_SiC_EA/restart_files
+shell chmod 777 ${respath}/ovito_analysis_results
+shell chmod 777 eq_fix2_2.0x100_m_s-1_Groove6T0.5_SiC_EA/ovito_analysis_results
+
+package cuda gpu/node 1 0
+package omp 2 force/neigh
+using multi-threaded neighbor list subroutines
+prefer double precision OpenMP force kernels
+# ------------------------ INITIALIZATION ----------------------------
+units 		metal
+dimension	3
+boundary	s	s	p
+atom_style	atomic
+
+
+read_restart cut_sic.pre_cut.restart
+  orthogonal box = (-0.033967 -0.00821494 0) to (323.135 82.1412 78.6006)
+  1 by 1 by 1 MPI processor grid
+  163956 atoms
+reset_timestep 0
+fix 13 all property/atom mol
+Resetting per-atom state of Fix 13 Style property/atom from restart file info
+
+#dump	 0dumpCSP all custom  500 dump.cutsic.*.lammpstrj id type mol x y z vx vy vz
+run 0
+No /omp style for force computation currently active
+Memory usage per processor = 26.2016 Mbytes
+Step Temp E_pair E_mol TotEng Press Volume 
+       0     327.4678            0            0    6939.9749    3552.3908    2086681.9 
+Loop time of 0.086467 on 1 procs for 0 steps with 163956 atoms
+
+Pair  time (%) = 0 (0)
+Neigh time (%) = 0 (0)
+Comm  time (%) = 0 (0)
+Outpt time (%) = 0 (0)
+Other time (%) = 0.086467 (100)
+
+Nlocal:    163956 ave 163956 max 163956 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Nghost:    239 ave 239 max 239 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Neighs:    0 ave 0 max 0 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+
+Total # of neighbors = 0
+Ave neighs/atom = 0
+Neighbor list builds = 0
+Dangerous builds = 0
+
+group gpDia type 1
+20658 atoms in group gpDia
+group gpCTbd  molecule  3
+3696 atoms in group gpCTbd
+group gpCTtsbd  molecule 2
+3344 atoms in group gpCTtsbd
+group gpCTmob molecule 1
+13618 atoms in group gpCTmob
+
+print "diamond tool created"
+diamond tool created
+#------------------------------------------------------------
+
+# define the lattice of cubic SiC (two atom types form two interpenetrating face-centered cubic lattices)
+
+
+# groups atoms
+group gpSiC type 2 3
+143298 atoms in group gpSiC
+group gpWPbd molecule 6
+14274 atoms in group gpWPbd
+group gpWPtsbd molecule 5
+13914 atoms in group gpWPtsbd
+group gpWPmob molecule 4
+117936 atoms in group gpWPmob
+
+group mobile subtract all gpCTtsbd gpWPtsbd
+146698 atoms in group mobile
+
+print "Workpiece created"
+Workpiece created
+
+#-------------------------------------------------
+
+
+# define the mass of atoms
+mass 1 12 #.0107 # C (g/mol)
+mass 2 28 #.0855 # Si (g/mol)
+mass 3 12 #.0107 # C (g/mol)
+
+variable a equal 4.3667
+variable b equal 3.571
+variable c equal $a/$b
+variable c equal 4.3667/$b
+variable c equal 4.3667/3.571
+variable dx equal 65*$c
+variable dx equal 65*1.22282273872865
+variable dy equal 10*$c
+variable dy equal 10*1.22282273872865
+variable dx1 equal 11+${dx}
+variable dx1 equal 11+79.4834780173623
+variable dy1 equal ${dy}+11
+variable dy1 equal 12.2282273872865+11
+variable rx equal ${dx}+4
+variable rx equal 79.4834780173623+4
+variable ry equal ${dy}+4
+variable ry equal 12.2282273872865+4
+variable bx1 equal ${dx1}-1
+variable bx1 equal 90.4834780173623-1
+variable bx2 equal ${bx1}-1
+variable bx2 equal 89.4834780173623-1
+variable by1 equal ${dy1}-1
+variable by1 equal 23.2282273872865-1
+variable by2 equal ${by1}-1
+variable by2 equal 22.2282273872865-1
+
+lattice diamond $b
+lattice diamond 3.571
+Lattice spacing in x,y,z = 3.571 3.571 3.571
+variable gy equal ${grooveDepth}+3.2226178427343
+variable gy equal 6+3.2226178427343
+variable gy1 equal ${gy}+1.0
+variable gy1 equal 9.2226178427343+1.0
+variable gz1 equal ${grooveTan}*18+1.5
+variable gz1 equal 0.5*18+1.5
+region groove4 block  ${dx} ${dx1} ${gy} ${gy1} 2.5 ${gz1}
+region groove4 block  79.4834780173623 ${dx1} ${gy} ${gy1} 2.5 ${gz1}
+region groove4 block  79.4834780173623 90.4834780173623 ${gy} ${gy1} 2.5 ${gz1}
+region groove4 block  79.4834780173623 90.4834780173623 9.2226178427343 ${gy1} 2.5 ${gz1}
+region groove4 block  79.4834780173623 90.4834780173623 9.2226178427343 10.2226178427343 2.5 ${gz1}
+region groove4 block  79.4834780173623 90.4834780173623 9.2226178427343 10.2226178427343 2.5 10.5
+variable gy1 equal ${gy1}+1.0
+variable gy1 equal 10.2226178427343+1.0
+variable gz0 equal 2.5+${grooveTan}
+variable gz0 equal 2.5+0.5
+variable gz1 equal ${gz1}-${grooveTan}
+variable gz1 equal 10.5-${grooveTan}
+variable gz1 equal 10.5-0.5
+region groove5 block  ${dx} ${dx1} ${gy} ${gy1} ${gz0} ${gz1}
+region groove5 block  79.4834780173623 ${dx1} ${gy} ${gy1} ${gz0} ${gz1}
+region groove5 block  79.4834780173623 90.4834780173623 ${gy} ${gy1} ${gz0} ${gz1}
+region groove5 block  79.4834780173623 90.4834780173623 9.2226178427343 ${gy1} ${gz0} ${gz1}
+region groove5 block  79.4834780173623 90.4834780173623 9.2226178427343 11.2226178427343 ${gz0} ${gz1}
+region groove5 block  79.4834780173623 90.4834780173623 9.2226178427343 11.2226178427343 3 ${gz1}
+region groove5 block  79.4834780173623 90.4834780173623 9.2226178427343 11.2226178427343 3 10
+variable gy1 equal ${gy1}+1.0
+variable gy1 equal 11.2226178427343+1.0
+variable gz0 equal ${gz0}+${grooveTan}
+variable gz0 equal 3+${grooveTan}
+variable gz0 equal 3+0.5
+variable gz1 equal ${gz1}-${grooveTan}
+variable gz1 equal 10-${grooveTan}
+variable gz1 equal 10-0.5
+region groove6 block ${dx} ${dx1} ${gy} ${gy1} ${gz0} ${gz1}
+region groove6 block 79.4834780173623 ${dx1} ${gy} ${gy1} ${gz0} ${gz1}
+region groove6 block 79.4834780173623 90.4834780173623 ${gy} ${gy1} ${gz0} ${gz1}
+region groove6 block 79.4834780173623 90.4834780173623 9.2226178427343 ${gy1} ${gz0} ${gz1}
+region groove6 block 79.4834780173623 90.4834780173623 9.2226178427343 12.2226178427343 ${gz0} ${gz1}
+region groove6 block 79.4834780173623 90.4834780173623 9.2226178427343 12.2226178427343 3.5 ${gz1}
+region groove6 block 79.4834780173623 90.4834780173623 9.2226178427343 12.2226178427343 3.5 9.5
+variable gy1 equal ${gy1}+1.0
+variable gy1 equal 12.2226178427343+1.0
+variable gz0 equal ${gz0}+${grooveTan}
+variable gz0 equal 3.5+${grooveTan}
+variable gz0 equal 3.5+0.5
+variable gz1 equal ${gz1}-${grooveTan}
+variable gz1 equal 9.5-${grooveTan}
+variable gz1 equal 9.5-0.5
+region groove7 block ${dx} ${dx1} ${gy} ${gy1} ${gz0} ${gz1}
+region groove7 block 79.4834780173623 ${dx1} ${gy} ${gy1} ${gz0} ${gz1}
+region groove7 block 79.4834780173623 90.4834780173623 ${gy} ${gy1} ${gz0} ${gz1}
+region groove7 block 79.4834780173623 90.4834780173623 9.2226178427343 ${gy1} ${gz0} ${gz1}
+region groove7 block 79.4834780173623 90.4834780173623 9.2226178427343 13.2226178427343 ${gz0} ${gz1}
+region groove7 block 79.4834780173623 90.4834780173623 9.2226178427343 13.2226178427343 4 ${gz1}
+region groove7 block 79.4834780173623 90.4834780173623 9.2226178427343 13.2226178427343 4 9
+variable gy1 equal ${gy1}+1.0
+variable gy1 equal 13.2226178427343+1.0
+variable gz0 equal ${gz0}+${grooveTan}
+variable gz0 equal 4+${grooveTan}
+variable gz0 equal 4+0.5
+variable gz1 equal ${gz1}-${grooveTan}
+variable gz1 equal 9-${grooveTan}
+variable gz1 equal 9-0.5
+region groove8 block ${dx} ${dx1} ${gy} ${gy1} ${gz0} ${gz1}
+region groove8 block 79.4834780173623 ${dx1} ${gy} ${gy1} ${gz0} ${gz1}
+region groove8 block 79.4834780173623 90.4834780173623 ${gy} ${gy1} ${gz0} ${gz1}
+region groove8 block 79.4834780173623 90.4834780173623 9.2226178427343 ${gy1} ${gz0} ${gz1}
+region groove8 block 79.4834780173623 90.4834780173623 9.2226178427343 14.2226178427343 ${gz0} ${gz1}
+region groove8 block 79.4834780173623 90.4834780173623 9.2226178427343 14.2226178427343 4.5 ${gz1}
+region groove8 block 79.4834780173623 90.4834780173623 9.2226178427343 14.2226178427343 4.5 8.5
+variable gy1 equal ${gy1}+1.0
+variable gy1 equal 14.2226178427343+1.0
+variable gz0 equal ${gz0}+${grooveTan}
+variable gz0 equal 4.5+${grooveTan}
+variable gz0 equal 4.5+0.5
+variable gz1 equal ${gz1}-${grooveTan}
+variable gz1 equal 8.5-${grooveTan}
+variable gz1 equal 8.5-0.5
+region groove9 block ${dx} ${dx1} ${gy} ${gy1} ${gz0} ${gz1}
+region groove9 block 79.4834780173623 ${dx1} ${gy} ${gy1} ${gz0} ${gz1}
+region groove9 block 79.4834780173623 90.4834780173623 ${gy} ${gy1} ${gz0} ${gz1}
+region groove9 block 79.4834780173623 90.4834780173623 9.2226178427343 ${gy1} ${gz0} ${gz1}
+region groove9 block 79.4834780173623 90.4834780173623 9.2226178427343 15.2226178427343 ${gz0} ${gz1}
+region groove9 block 79.4834780173623 90.4834780173623 9.2226178427343 15.2226178427343 5 ${gz1}
+region groove9 block 79.4834780173623 90.4834780173623 9.2226178427343 15.2226178427343 5 8
+variable gy1 equal ${gy1}+1.0
+variable gy1 equal 15.2226178427343+1.0
+variable gz0 equal ${gz0}+${grooveTan}
+variable gz0 equal 5+${grooveTan}
+variable gz0 equal 5+0.5
+variable gz1 equal ${gz1}-${grooveTan}
+variable gz1 equal 8-${grooveTan}
+variable gz1 equal 8-0.5
+region groove10 block ${dx} ${dx1} ${gy} ${gy1} ${gz0} ${gz1}
+region groove10 block 79.4834780173623 ${dx1} ${gy} ${gy1} ${gz0} ${gz1}
+region groove10 block 79.4834780173623 90.4834780173623 ${gy} ${gy1} ${gz0} ${gz1}
+region groove10 block 79.4834780173623 90.4834780173623 9.2226178427343 ${gy1} ${gz0} ${gz1}
+region groove10 block 79.4834780173623 90.4834780173623 9.2226178427343 16.2226178427343 ${gz0} ${gz1}
+region groove10 block 79.4834780173623 90.4834780173623 9.2226178427343 16.2226178427343 5.5 ${gz1}
+region groove10 block 79.4834780173623 90.4834780173623 9.2226178427343 16.2226178427343 5.5 7.5
+variable gy1 equal ${gy1}+1.0
+variable gy1 equal 16.2226178427343+1.0
+variable gz0 equal ${gz0}+${grooveTan}
+variable gz0 equal 5.5+${grooveTan}
+variable gz0 equal 5.5+0.5
+variable gz1 equal ${gz1}-${grooveTan}
+variable gz1 equal 7.5-${grooveTan}
+variable gz1 equal 7.5-0.5
+region groove11 block ${dx} ${dx1} ${gy} ${gy1} ${gz0} ${gz1}
+region groove11 block 79.4834780173623 ${dx1} ${gy} ${gy1} ${gz0} ${gz1}
+region groove11 block 79.4834780173623 90.483478
